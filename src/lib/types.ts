@@ -38,7 +38,7 @@ export type MealPlan = {
   id: string;
   date: Date;
   recipeId: string;
-  mealType: 'breakfast' | 'lunch' | 'dinner' | 'snack';
+  mealType: 'breakfast' | 'lunch' | 'dinner' | 'snack' | 'dessert';
 };
 
 export type GroceryItem = {

@@ -18,7 +18,7 @@ const MealPlanner: React.FC = () => {
     };
   });
   
-  const mealTypes = ['breakfast', 'lunch', 'dinner', 'snack'];
+  const mealTypes = ['breakfast', 'lunch', 'dinner', 'snack', 'dessert'];
   
   // Function to find meal for specific date and meal type
   const findMeal = (date: Date, mealType: string) => {
