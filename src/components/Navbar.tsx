@@ -34,12 +34,17 @@ const Navbar: React.FC = () => {
           <Link to="/grocery-list" className="text-recipe-text hover:text-recipe-primary transition-colors">
             Grocery List
           </Link>
+          <Link to="/ai-chef" className="text-recipe-text hover:text-recipe-primary transition-colors">
+            AI Chef
+          </Link>
         </div>
 
         <div className="flex items-center gap-2">
-          <Button variant="ghost" size="icon" className="text-recipe-text">
-            <Search className="h-5 w-5" />
-          </Button>
+          <Link to="/recipes">
+            <Button variant="ghost" size="icon" className="text-recipe-text">
+              <Search className="h-5 w-5" />
+            </Button>
+          </Link>
           
           {/* Mobile Menu */}
           <Sheet>
@@ -61,6 +66,9 @@ const Navbar: React.FC = () => {
                 </Link>
                 <Link to="/grocery-list" className="text-lg font-medium py-2 px-4 hover:bg-muted rounded-md transition-colors">
                   Grocery List
+                </Link>
+                <Link to="/ai-chef" className="text-lg font-medium py-2 px-4 hover:bg-muted rounded-md transition-colors">
+                  AI Chef
                 </Link>
               </div>
             </SheetContent>

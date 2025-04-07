@@ -6,7 +6,7 @@ import RecipeCard from '@/components/RecipeCard';
 import MealPlanner from '@/components/MealPlanner';
 import GroceryList from '@/components/GroceryList';
 import RecipeForm from '@/components/RecipeForm';
-import { mockRecipes, mockTags } from '@/lib/mockData';
+import { mockRecipes } from '@/lib/mockData';
 import { Recipe } from '@/lib/types';
 import { 
   Plus, 
@@ -14,8 +14,7 @@ import {
   Calendar, 
   ShoppingCart, 
   Search, 
-  FolderOpen, 
-  X 
+  FolderOpen
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Dialog, DialogContent, DialogTrigger } from '@/components/ui/dialog';
@@ -87,8 +86,10 @@ const Index = () => {
                   </ScrollArea>
                 </DialogContent>
               </Dialog>
-              <Button variant="outline" className="border-white hover:bg-white/20">
-                <Search className="h-4 w-4 mr-2" /> Explore Recipes
+              <Button variant="outline" className="border-white hover:bg-white/20" asChild>
+                <Link to="/recipes">
+                  <Search className="h-4 w-4 mr-2" /> Explore Recipes
+                </Link>
               </Button>
             </div>
           </div>
@@ -111,8 +112,8 @@ const Index = () => {
                   <p className="mb-4 text-sm text-muted-foreground">
                     Browse and organize all your recipes with custom tags.
                   </p>
-                  <Button variant="outline" className="w-full">
-                    View Library
+                  <Button variant="outline" className="w-full" asChild>
+                    <Link to="/recipes">View Library</Link>
                   </Button>
                 </CardContent>
               </Card>
@@ -128,8 +129,8 @@ const Index = () => {
                   <p className="mb-4 text-sm text-muted-foreground">
                     Plan your meals for the week with an interactive calendar.
                   </p>
-                  <Button variant="outline" className="w-full">
-                    Plan Meals
+                  <Button variant="outline" className="w-full" asChild>
+                    <Link to="/meal-planner">Plan Meals</Link>
                   </Button>
                 </CardContent>
               </Card>
@@ -145,8 +146,8 @@ const Index = () => {
                   <p className="mb-4 text-sm text-muted-foreground">
                     Generate shopping lists from your planned meals.
                   </p>
-                  <Button variant="outline" className="w-full">
-                    View List
+                  <Button variant="outline" className="w-full" asChild>
+                    <Link to="/grocery-list">View List</Link>
                   </Button>
                 </CardContent>
               </Card>
@@ -162,8 +163,8 @@ const Index = () => {
                   <p className="mb-4 text-sm text-muted-foreground">
                     Get AI-powered recipe suggestions and meal ideas.
                   </p>
-                  <Button variant="outline" className="w-full">
-                    Ask AI Chef
+                  <Button variant="outline" className="w-full" asChild>
+                    <Link to="/ai-chef">Ask AI Chef</Link>
                   </Button>
                 </CardContent>
               </Card>
@@ -192,15 +193,40 @@ const Index = () => {
                       onFavoriteToggle={handleFavoriteToggle}
                     />
                   ))}
+                  <div className="flex items-center justify-center">
+                    <Button asChild className="bg-recipe-primary hover:bg-recipe-primary/90">
+                      <Link to="/recipes">
+                        View All Recipes
+                      </Link>
+                    </Button>
+                  </div>
                 </div>
               </TabsContent>
               
               <TabsContent value="planner" className="animate-fade-in">
-                <MealPlanner />
+                <div>
+                  <MealPlanner />
+                  <div className="flex justify-center mt-6">
+                    <Button asChild className="bg-recipe-primary hover:bg-recipe-primary/90">
+                      <Link to="/meal-planner">
+                        Open Full Meal Planner
+                      </Link>
+                    </Button>
+                  </div>
+                </div>
               </TabsContent>
               
               <TabsContent value="grocery" className="animate-fade-in">
-                <GroceryList />
+                <div>
+                  <GroceryList />
+                  <div className="flex justify-center mt-6">
+                    <Button asChild className="bg-recipe-primary hover:bg-recipe-primary/90">
+                      <Link to="/grocery-list">
+                        Open Full Grocery List
+                      </Link>
+                    </Button>
+                  </div>
+                </div>
               </TabsContent>
             </Tabs>
           </div>
