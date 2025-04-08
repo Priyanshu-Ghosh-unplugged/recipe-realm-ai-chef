@@ -18,7 +18,7 @@ export interface GeminiResponse {
 // Main function to get recipe suggestions from Gemini
 export async function getRecipeSuggestions(prompt: string): Promise<GeminiResponse> {
   try {
-    const apiKey = "API KEY"; // Using the provided API key
+    const apiKey = "AIzaSyBMjw1-moQSEc0ZLMAZSF8I_Poo_fWAmbA"; // Using the provided API key
     
     if (!apiKey || apiKey === "API KEY") {
       throw new Error("Missing Gemini API key");
