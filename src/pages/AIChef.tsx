@@ -37,6 +37,11 @@ const AIChef = () => {
     setResponse(null);
     
     try {
+      toast({
+        title: "Generating recipes",
+        description: "Our AI chef is cooking up some ideas for you...",
+      });
+      
       // Call the Gemini API
       const geminiResponse = await getRecipeSuggestions(query);
       
@@ -71,7 +76,7 @@ const AIChef = () => {
             </div>
             <h1 className="text-4xl font-bold mb-4">AI Chef Assistant</h1>
             <p className="text-lg text-muted-foreground mb-8">
-              Get AI-powered recipe suggestions, meal ideas, and cooking tips
+              Get AI-powered recipe suggestions using Gemini 2.0 Flash Thinking
             </p>
             
             <form onSubmit={handleSubmit} className="flex gap-2 max-w-2xl mx-auto">
@@ -96,12 +101,21 @@ const AIChef = () => {
           </div>
           
           {/* AI Response Section */}
-          {response && (
+          {isLoading && (
+            <div className="flex justify-center items-center py-12">
+              <div className="text-center">
+                <Loader2 className="h-12 w-12 animate-spin mx-auto mb-4 text-recipe-primary" />
+                <p className="text-lg">Our AI chef is cooking up some ideas for you...</p>
+              </div>
+            </div>
+          )}
+          
+          {response && !isLoading && (
             <div className="mb-12">
               <h2 className="text-xl font-semibold mb-4">Recipe Suggestions</h2>
               <Card className="mb-8">
                 <CardContent className="p-6">
-                  <div className="whitespace-pre-wrap">
+                  <div className="prose max-w-none">
                     {response.split('\n').map((line, i) => (
                       <React.Fragment key={i}>
                         {line}

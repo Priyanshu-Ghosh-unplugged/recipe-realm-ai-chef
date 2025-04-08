@@ -24,7 +24,8 @@ export async function getRecipeSuggestions(prompt: string): Promise<GeminiRespon
       throw new Error("Missing Gemini API key");
     }
     
-    const response = await fetch("https://generativelanguage.googleapis.com/v1beta/models/gemini-pro:generateContent", {
+    // Updated to use the Gemini 2.0 Flash Thinking Experimental 01-21 model
+    const response = await fetch("https://generativelanguage.googleapis.com/v1beta/models/gemini-pro-experimental-flash-thinking-01-21:generateContent", {
       method: "POST",
       headers: {
         "Content-Type": "application/json",
@@ -34,14 +35,15 @@ export async function getRecipeSuggestions(prompt: string): Promise<GeminiRespon
         contents: [{
           parts: [{
             text: `Generate recipe suggestions based on this request: "${prompt}". 
-            Please format your response as conversational text, but also include structured recipe information if applicable.`
+            Please format your response as conversational text, but also include structured recipe information if applicable.
+            For each recipe, include title, description, ingredients (as a list), instructions (as numbered steps), prep time, cook time, and number of servings.`
           }]
         }],
         generationConfig: {
           temperature: 0.7,
           topK: 40,
           topP: 0.95,
-          maxOutputTokens: 1000,
+          maxOutputTokens: 1200, // Increased token limit for more detailed recipes
         }
       })
     });
@@ -57,7 +59,7 @@ export async function getRecipeSuggestions(prompt: string): Promise<GeminiRespon
     const text = data.candidates[0]?.content?.parts?.[0]?.text || "Sorry, I couldn't generate any recipe suggestions.";
     
     // For now, we're just returning the text response
-    // In a more advanced implementation, you could parse the response to extract structured recipe data
+    // In a more advanced implementation, we could parse the response to extract structured recipe data
     return { text };
   } catch (error) {
     console.error("Error fetching recipe suggestions:", error);
