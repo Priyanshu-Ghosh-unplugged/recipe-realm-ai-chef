@@ -241,15 +241,19 @@ const RecipeForm: React.FC<RecipeFormProps> = ({
       });
       
       const savedRecipe: Recipe = {
-        ...recipe,
         id: recipeId,
-        createdAt: new Date(),
-        updatedAt: new Date(),
-        isFavorite: false,
+        title: recipe.title || 'Untitled Recipe',
+        description: recipe.description || '',
+        imageUrl: recipe.imageUrl || 'https://images.unsplash.com/photo-1546069901-5ec6a79120b0?q=80&w=1000',
+        prepTime: recipe.prepTime || 0,
+        cookTime: recipe.cookTime || 0,
+        servings: recipe.servings || 1,
         ingredients: recipe.ingredients || [],
         instructions: recipe.instructions || [],
         tags: recipe.tags || [],
-        title: recipe.title || 'Untitled Recipe',
+        createdAt: new Date(),
+        updatedAt: new Date(),
+        isFavorite: false
       };
       
       onSave(savedRecipe);
