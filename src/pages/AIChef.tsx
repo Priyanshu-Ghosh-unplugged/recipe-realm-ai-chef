@@ -4,10 +4,16 @@ import Navbar from '@/components/Navbar';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { ChefHat, Search, ArrowRight } from 'lucide-react';
+import { ChefHat, Search, ArrowRight, Loader2 } from 'lucide-react';
+import { getRecipeSuggestions } from '@/lib/gemini-api';
+import { useToast } from '@/hooks/use-toast';
+import { Textarea } from "@/components/ui/textarea";
 
 const AIChef = () => {
   const [query, setQuery] = useState('');
+  const [isLoading, setIsLoading] = useState(false);
+  const [response, setResponse] = useState<string | null>(null);
+  const { toast } = useToast();
   const [suggestions, setSuggestions] = useState<string[]>([
     'Quick dinner ideas with chicken',
     'Vegetarian pasta recipes',
@@ -15,15 +21,41 @@ const AIChef = () => {
     'Desserts under 30 minutes'
   ]);
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    // In a real app, this would call an AI service
-    console.log('Submitted query:', query);
-    // Reset the query after submission
-    setQuery('');
-    // Add the query to suggestions (simulating AI behavior)
-    if (query.trim()) {
-      setSuggestions(prev => [query, ...prev.slice(0, 3)]);
+    
+    if (!query.trim()) {
+      toast({
+        title: "Empty query",
+        description: "Please enter a recipe query to get suggestions",
+        variant: "destructive"
+      });
+      return;
+    }
+    
+    setIsLoading(true);
+    setResponse(null);
+    
+    try {
+      // Call the Gemini API
+      const geminiResponse = await getRecipeSuggestions(query);
+      
+      // Update the response state with the text from Gemini
+      setResponse(geminiResponse.text);
+      
+      // Add the query to suggestions (only if we don't already have it)
+      if (query.trim() && !suggestions.includes(query)) {
+        setSuggestions(prev => [query, ...prev.slice(0, 3)]);
+      }
+    } catch (error) {
+      console.error('Error in AI Chef:', error);
+      toast({
+        title: "Error",
+        description: error instanceof Error ? error.message : "Failed to get recipe suggestions",
+        variant: "destructive"
+      });
+    } finally {
+      setIsLoading(false);
     }
   };
   
@@ -50,19 +82,47 @@ const AIChef = () => {
                   placeholder="Ask me anything about cooking..." 
                   value={query}
                   onChange={(e) => setQuery(e.target.value)}
+                  disabled={isLoading}
                 />
               </div>
-              <Button type="submit" className="bg-recipe-primary hover:bg-recipe-primary/90 py-6">
-                <ArrowRight className="h-5 w-5" />
+              <Button 
+                type="submit" 
+                className="bg-recipe-primary hover:bg-recipe-primary/90 py-6"
+                disabled={isLoading}
+              >
+                {isLoading ? <Loader2 className="h-5 w-5 animate-spin" /> : <ArrowRight className="h-5 w-5" />}
               </Button>
             </form>
           </div>
+          
+          {/* AI Response Section */}
+          {response && (
+            <div className="mb-12">
+              <h2 className="text-xl font-semibold mb-4">Recipe Suggestions</h2>
+              <Card className="mb-8">
+                <CardContent className="p-6">
+                  <div className="whitespace-pre-wrap">
+                    {response.split('\n').map((line, i) => (
+                      <React.Fragment key={i}>
+                        {line}
+                        <br />
+                      </React.Fragment>
+                    ))}
+                  </div>
+                </CardContent>
+              </Card>
+            </div>
+          )}
           
           <div className="mb-12">
             <h2 className="text-xl font-semibold mb-4">Popular Prompts</h2>
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               {suggestions.map((suggestion, index) => (
-                <Card key={index} className="hover-scale cursor-pointer" onClick={() => setQuery(suggestion)}>
+                <Card 
+                  key={index} 
+                  className="hover:shadow-md transition-shadow cursor-pointer" 
+                  onClick={() => setQuery(suggestion)}
+                >
                   <CardContent className="p-4 flex items-center justify-between">
                     <span>{suggestion}</span>
                     <ArrowRight className="h-4 w-4 text-recipe-primary" />
