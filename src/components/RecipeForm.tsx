@@ -1,3 +1,4 @@
+
 import React, { useState } from 'react';
 import { Recipe, Ingredient, RecipeInstruction, Tag } from '@/lib/types';
 import { Button } from '@/components/ui/button';
@@ -78,6 +79,12 @@ const RecipeForm: React.FC<RecipeFormProps> = ({
       }));
       
       setNewIngredient({ name: '', amount: '', unit: '' });
+    } else {
+      toast({
+        title: "Missing information",
+        description: "Please provide at least an ingredient name and amount.",
+        variant: "destructive"
+      });
     }
   };
 
@@ -157,6 +164,8 @@ const RecipeForm: React.FC<RecipeFormProps> = ({
     try {
       setIsSaving(true);
       
+      console.log("Saving recipe with data:", recipe);
+      
       const { data: recipeData, error: recipeError } = await supabase
         .from('recipes')
         .insert({
@@ -172,22 +181,32 @@ const RecipeForm: React.FC<RecipeFormProps> = ({
         .select('id')
         .single();
       
-      if (recipeError) throw recipeError;
+      if (recipeError) {
+        console.error("Error saving recipe:", recipeError);
+        throw recipeError;
+      }
       
       const recipeId = recipeData.id;
+      console.log("Recipe saved with ID:", recipeId);
       
       if (recipe.ingredients && recipe.ingredients.length > 0) {
+        console.log("Processing ingredients:", recipe.ingredients);
         for (const ingredient of recipe.ingredients) {
           let ingredientId: string;
           
-          const { data: existingIngredient } = await supabase
+          const { data: existingIngredient, error: findError } = await supabase
             .from('ingredients')
             .select('id')
             .eq('name', ingredient.name)
             .maybeSingle();
           
+          if (findError) {
+            console.error("Error finding ingredient:", findError);
+          }
+          
           if (existingIngredient) {
             ingredientId = existingIngredient.id;
+            console.log("Found existing ingredient:", ingredientId);
           } else {
             const { data: newIngredient, error: ingredientError } = await supabase
               .from('ingredients')
@@ -195,20 +214,30 @@ const RecipeForm: React.FC<RecipeFormProps> = ({
               .select('id')
               .single();
               
-            if (ingredientError) throw ingredientError;
+            if (ingredientError) {
+              console.error("Error creating ingredient:", ingredientError);
+              throw ingredientError;
+            }
             ingredientId = newIngredient.id;
+            console.log("Created new ingredient:", ingredientId);
           }
           
-          await supabase.from('recipe_ingredients').insert({
+          const { error: recipeIngredientError } = await supabase.from('recipe_ingredients').insert({
             recipe_id: recipeId,
             ingredient_id: ingredientId,
             amount: ingredient.amount,
             unit: ingredient.unit
           });
+          
+          if (recipeIngredientError) {
+            console.error("Error linking ingredient to recipe:", recipeIngredientError);
+            throw recipeIngredientError;
+          }
         }
       }
       
       if (recipe.instructions && recipe.instructions.length > 0) {
+        console.log("Processing instructions:", recipe.instructions);
         const instructions = recipe.instructions.map(instruction => ({
           recipe_id: recipeId,
           step: instruction.step,
@@ -219,10 +248,14 @@ const RecipeForm: React.FC<RecipeFormProps> = ({
           .from('recipe_instructions')
           .insert(instructions);
           
-        if (instructionsError) throw instructionsError;
+        if (instructionsError) {
+          console.error("Error saving instructions:", instructionsError);
+          throw instructionsError;
+        }
       }
       
       if (recipe.tags && recipe.tags.length > 0) {
+        console.log("Processing tags:", recipe.tags);
         const recipeTags = recipe.tags.map(tag => ({
           recipe_id: recipeId,
           tag_id: tag.id
@@ -232,7 +265,10 @@ const RecipeForm: React.FC<RecipeFormProps> = ({
           .from('recipe_tags')
           .insert(recipeTags);
           
-        if (tagsError) throw tagsError;
+        if (tagsError) {
+          console.error("Error linking tags to recipe:", tagsError);
+          throw tagsError;
+        }
       }
       
       toast({
