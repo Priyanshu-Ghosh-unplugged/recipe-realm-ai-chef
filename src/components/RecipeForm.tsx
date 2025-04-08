@@ -1,4 +1,3 @@
-
 import React, { useState } from 'react';
 import { Recipe, Ingredient, RecipeInstruction, Tag } from '@/lib/types';
 import { Button } from '@/components/ui/button';
@@ -7,6 +6,9 @@ import { Textarea } from '@/components/ui/textarea';
 import { X, Plus } from 'lucide-react';
 import TagInput from './TagInput';
 import { mockTags } from '@/lib/mockData';
+import { useToast } from '@/components/ui/use-toast';
+import { useAuth } from '@/contexts/AuthContext';
+import { supabase } from '@/integrations/supabase/client';
 
 interface RecipeFormProps {
   initialRecipe?: Partial<Recipe>;
@@ -19,6 +21,10 @@ const RecipeForm: React.FC<RecipeFormProps> = ({
   onSave,
   onCancel
 }) => {
+  const { toast } = useToast();
+  const { user } = useAuth();
+  const [isSaving, setIsSaving] = useState(false);
+  
   const [recipe, setRecipe] = useState<Partial<Recipe>>(initialRecipe || {
     title: '',
     description: '',
@@ -102,7 +108,6 @@ const RecipeForm: React.FC<RecipeFormProps> = ({
   const removeInstruction = (id: string) => {
     const updatedInstructions = recipe.instructions?.filter(instruction => instruction.id !== id) || [];
     
-    // Reorder steps
     const reordered = updatedInstructions.map((instruction, index) => ({
       ...instruction,
       step: index + 1,
@@ -128,9 +133,137 @@ const RecipeForm: React.FC<RecipeFormProps> = ({
     }));
   };
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    onSave(recipe);
+    
+    if (!user) {
+      toast({
+        variant: "destructive",
+        title: "Authentication required",
+        description: "You must be logged in to save recipes."
+      });
+      return;
+    }
+    
+    if (!recipe.title) {
+      toast({
+        variant: "destructive",
+        title: "Recipe title required",
+        description: "Please provide a title for your recipe."
+      });
+      return;
+    }
+
+    try {
+      setIsSaving(true);
+      
+      const { data: recipeData, error: recipeError } = await supabase
+        .from('recipes')
+        .insert({
+          title: recipe.title,
+          description: recipe.description || '',
+          image_url: recipe.imageUrl || 'https://images.unsplash.com/photo-1546069901-5ec6a79120b0?q=80&w=1000',
+          prep_time: recipe.prepTime || 0,
+          cook_time: recipe.cookTime || 0,
+          servings: recipe.servings || 1,
+          user_id: user.id,
+          is_favorite: false
+        })
+        .select('id')
+        .single();
+      
+      if (recipeError) throw recipeError;
+      
+      const recipeId = recipeData.id;
+      
+      if (recipe.ingredients && recipe.ingredients.length > 0) {
+        for (const ingredient of recipe.ingredients) {
+          let ingredientId: string;
+          
+          const { data: existingIngredient } = await supabase
+            .from('ingredients')
+            .select('id')
+            .eq('name', ingredient.name)
+            .maybeSingle();
+          
+          if (existingIngredient) {
+            ingredientId = existingIngredient.id;
+          } else {
+            const { data: newIngredient, error: ingredientError } = await supabase
+              .from('ingredients')
+              .insert({ name: ingredient.name })
+              .select('id')
+              .single();
+              
+            if (ingredientError) throw ingredientError;
+            ingredientId = newIngredient.id;
+          }
+          
+          await supabase.from('recipe_ingredients').insert({
+            recipe_id: recipeId,
+            ingredient_id: ingredientId,
+            amount: ingredient.amount,
+            unit: ingredient.unit
+          });
+        }
+      }
+      
+      if (recipe.instructions && recipe.instructions.length > 0) {
+        const instructions = recipe.instructions.map(instruction => ({
+          recipe_id: recipeId,
+          step: instruction.step,
+          text: instruction.text
+        }));
+        
+        const { error: instructionsError } = await supabase
+          .from('recipe_instructions')
+          .insert(instructions);
+          
+        if (instructionsError) throw instructionsError;
+      }
+      
+      if (recipe.tags && recipe.tags.length > 0) {
+        const recipeTags = recipe.tags.map(tag => ({
+          recipe_id: recipeId,
+          tag_id: tag.id
+        }));
+        
+        const { error: tagsError } = await supabase
+          .from('recipe_tags')
+          .insert(recipeTags);
+          
+        if (tagsError) throw tagsError;
+      }
+      
+      toast({
+        title: "Recipe saved",
+        description: "Your recipe has been saved successfully."
+      });
+      
+      const savedRecipe: Recipe = {
+        ...recipe,
+        id: recipeId,
+        createdAt: new Date(),
+        updatedAt: new Date(),
+        isFavorite: false,
+        ingredients: recipe.ingredients || [],
+        instructions: recipe.instructions || [],
+        tags: recipe.tags || [],
+        title: recipe.title || 'Untitled Recipe',
+      };
+      
+      onSave(savedRecipe);
+      
+    } catch (error) {
+      console.error('Error saving recipe:', error);
+      toast({
+        variant: "destructive",
+        title: "Error saving recipe",
+        description: "There was an error saving your recipe. Please try again."
+      });
+    } finally {
+      setIsSaving(false);
+    }
   };
 
   return (
@@ -324,11 +457,15 @@ const RecipeForm: React.FC<RecipeFormProps> = ({
       </div>
       
       <div className="flex justify-end gap-2 pt-4 border-t">
-        <Button type="button" variant="outline" onClick={onCancel}>
+        <Button type="button" variant="outline" onClick={onCancel} disabled={isSaving}>
           Cancel
         </Button>
-        <Button type="submit" className="bg-recipe-primary hover:bg-recipe-primary/90">
-          Save Recipe
+        <Button 
+          type="submit" 
+          className="bg-recipe-primary hover:bg-recipe-primary/90"
+          disabled={isSaving}
+        >
+          {isSaving ? 'Saving...' : 'Save Recipe'}
         </Button>
       </div>
     </form>

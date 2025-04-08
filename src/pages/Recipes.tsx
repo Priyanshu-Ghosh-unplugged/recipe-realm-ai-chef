@@ -1,49 +1,161 @@
 
-import React, { useState } from 'react';
-import { mockRecipes, mockTags } from '@/lib/mockData';
-import { Recipe } from '@/lib/types';
+import React, { useState, useEffect } from 'react';
+import { mockTags } from '@/lib/mockData';
+import { Recipe, Tag } from '@/lib/types';
+import { useAuth } from '@/contexts/AuthContext';
+import { supabase } from '@/integrations/supabase/client';
 import Navbar from '@/components/Navbar';
 import RecipeCard from '@/components/RecipeCard';
 import RecipeForm from '@/components/RecipeForm';
 import { Dialog, DialogContent, DialogTrigger } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
 import { ScrollArea } from '@/components/ui/scroll-area';
-import { Plus, Filter, Search } from 'lucide-react';
+import { Plus, Filter, Search, Loader2 } from 'lucide-react';
 import { Input } from '@/components/ui/input';
+import { useToast } from '@/components/ui/use-toast';
 
 const Recipes = () => {
-  const [recipes, setRecipes] = useState<Recipe[]>(mockRecipes);
+  const { user } = useAuth();
+  const { toast } = useToast();
+  const [recipes, setRecipes] = useState<Recipe[]>([]);
   const [isFormOpen, setIsFormOpen] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedTags, setSelectedTags] = useState<string[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
 
-  const handleFavoriteToggle = (id: string, isFavorite: boolean) => {
-    setRecipes(prev => 
-      prev.map(recipe => 
-        recipe.id === id ? { ...recipe, isFavorite } : recipe
-      )
-    );
+  useEffect(() => {
+    fetchRecipes();
+  }, [user]);
+
+  const fetchRecipes = async () => {
+    try {
+      setIsLoading(true);
+      
+      // Fetch all recipes (we'll add RLS policies later to restrict to user's own recipes)
+      const { data: recipesData, error: recipesError } = await supabase
+        .from('recipes')
+        .select('*');
+      
+      if (recipesError) throw recipesError;
+      
+      // Build complete recipe objects
+      const completeRecipes: Recipe[] = [];
+      
+      for (const recipeData of recipesData) {
+        try {
+          // Fetch ingredients
+          const { data: ingredientsData } = await supabase
+            .from('recipe_ingredients')
+            .select(`
+              id,
+              amount,
+              unit,
+              ingredients(id, name)
+            `)
+            .eq('recipe_id', recipeData.id);
+          
+          // Fetch instructions
+          const { data: instructionsData } = await supabase
+            .from('recipe_instructions')
+            .select('*')
+            .eq('recipe_id', recipeData.id)
+            .order('step', { ascending: true });
+          
+          // Fetch tags
+          const { data: tagsData } = await supabase
+            .from('recipe_tags')
+            .select(`
+              tags(id, name, color)
+            `)
+            .eq('recipe_id', recipeData.id);
+          
+          // Format the recipe with related data
+          const recipe: Recipe = {
+            id: recipeData.id,
+            title: recipeData.title,
+            description: recipeData.description || '',
+            imageUrl: recipeData.image_url || '',
+            prepTime: recipeData.prep_time || 0,
+            cookTime: recipeData.cook_time || 0,
+            servings: recipeData.servings || 1,
+            createdAt: new Date(recipeData.created_at),
+            updatedAt: new Date(recipeData.updated_at),
+            isFavorite: recipeData.is_favorite || false,
+            ingredients: (ingredientsData || []).map((item: any) => ({
+              id: item.id,
+              name: item.ingredients?.name || '',
+              amount: item.amount,
+              unit: item.unit || ''
+            })),
+            instructions: (instructionsData || []).map((instruction: any) => ({
+              id: instruction.id,
+              step: instruction.step,
+              text: instruction.text
+            })),
+            tags: (tagsData || []).map((tagItem: any) => ({
+              id: tagItem.tags.id,
+              name: tagItem.tags.name,
+              color: tagItem.tags.color
+            }))
+          };
+          
+          completeRecipes.push(recipe);
+        } catch (error) {
+          console.error('Error fetching recipe details:', error);
+        }
+      }
+      
+      setRecipes(completeRecipes);
+    } catch (error) {
+      console.error('Error fetching recipes:', error);
+      toast({
+        variant: "destructive",
+        title: "Error",
+        description: "Failed to load recipes. Please try again later."
+      });
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  const handleFavoriteToggle = async (id: string, isFavorite: boolean) => {
+    if (!user) {
+      toast({
+        title: "Sign in required",
+        description: "Please sign in to favorite recipes",
+      });
+      return;
+    }
+    
+    try {
+      // Update the database
+      const { error } = await supabase
+        .from('recipes')
+        .update({ is_favorite: isFavorite })
+        .eq('id', id);
+      
+      if (error) throw error;
+      
+      // Update local state
+      setRecipes(prev => 
+        prev.map(recipe => 
+          recipe.id === id ? { ...recipe, isFavorite } : recipe
+        )
+      );
+    } catch (error) {
+      console.error('Error updating favorite status:', error);
+      toast({
+        variant: "destructive",
+        title: "Error",
+        description: "Failed to update favorite status"
+      });
+    }
   };
   
   const handleSaveRecipe = (recipeData: Partial<Recipe>) => {
-    const newRecipe: Recipe = {
-      ...recipeData,
-      id: Date.now().toString(),
-      createdAt: new Date(),
-      updatedAt: new Date(),
-      isFavorite: false,
-      ingredients: recipeData.ingredients || [],
-      instructions: recipeData.instructions || [],
-      tags: recipeData.tags || [],
-      title: recipeData.title || 'Untitled Recipe',
-      description: recipeData.description || '',
-      imageUrl: recipeData.imageUrl || 'https://images.unsplash.com/photo-1546069901-5ec6a79120b0?q=80&w=1000',
-      prepTime: recipeData.prepTime || 0,
-      cookTime: recipeData.cookTime || 0,
-      servings: recipeData.servings || 1,
-    };
-    
-    setRecipes(prev => [...prev, newRecipe]);
+    // RecipeForm now handles the Supabase save operation
+    // Just refresh the recipes list and close the form
+    fetchRecipes();
     setIsFormOpen(false);
   };
 
@@ -129,7 +241,12 @@ const Recipes = () => {
           </div>
         </div>
 
-        {filteredRecipes.length > 0 ? (
+        {isLoading ? (
+          <div className="flex justify-center items-center py-12">
+            <Loader2 className="h-8 w-8 animate-spin text-recipe-primary" />
+            <span className="ml-2">Loading recipes...</span>
+          </div>
+        ) : filteredRecipes.length > 0 ? (
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
             {filteredRecipes.map(recipe => (
               <RecipeCard 
@@ -141,7 +258,7 @@ const Recipes = () => {
           </div>
         ) : (
           <div className="text-center py-12">
-            <p className="text-xl text-muted-foreground">No recipes found. Try adjusting your filters.</p>
+            <p className="text-xl text-muted-foreground">No recipes found. Try adjusting your filters or add a new recipe.</p>
             <Button onClick={() => { setSearchQuery(''); setSelectedTags([]); }} variant="link" className="mt-2">
               Clear all filters
             </Button>
