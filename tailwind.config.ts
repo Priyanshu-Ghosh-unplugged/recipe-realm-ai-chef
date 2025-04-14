@@ -1,4 +1,3 @@
-
 import type { Config } from "tailwindcss";
 
 export default {
@@ -28,6 +27,8 @@ export default {
 				'hero-pattern': "url('/hero-pattern.png')",
 				'recipe-gradient': 'linear-gradient(135deg, #FF9D6C 0%, #FF6B35 100%)',
 				'card-gradient': 'linear-gradient(180deg, rgba(255,255,255,0) 0%, rgba(255,255,255,1) 100%)',
+				'spice-pattern': 'radial-gradient(circle, #FF8A5B 2px, transparent 2px), radial-gradient(circle, #FF5154 1px, transparent 1px)',
+				'indian-gradient': 'linear-gradient(135deg, #FFA94D 0%, #FF5154 100%)',
 			},
 			colors: {
 				border: 'hsl(var(--border))',
@@ -75,6 +76,13 @@ export default {
 					teal: '#3ABBB3',       // Teal
 					yellow: '#FFD166',     // Warm Yellow
 					red: '#F25F5C',        // Coral Red
+					// New Indian cuisine inspired colors
+					saffron: '#FF9933',    // Saffron
+					turmeric: '#FFC30B',   // Turmeric Yellow
+					chili: '#FF5154',      // Chili Red
+					curry: '#E3A018',      // Curry
+					cardamom: '#2A603B',   // Cardamom Green
+					masala: '#8B4513',     // Masala Brown
 				},
 				sidebar: {
 					DEFAULT: 'hsl(var(--sidebar-background))',
@@ -140,6 +148,21 @@ export default {
 					'100%': {
 						transform: 'rotate(360deg)'
 					}
+				},
+				'spice-float': {
+					'0%, 100%': { transform: 'translateY(0) rotate(0deg)' },
+					'50%': { transform: 'translateY(-10px) rotate(5deg)' }
+				},
+				'masala-mix': {
+					'0%': { transform: 'rotate(0deg) scale(1)' },
+					'25%': { transform: 'rotate(10deg) scale(1.05)' },
+					'50%': { transform: 'rotate(0deg) scale(1.1)' },
+					'75%': { transform: 'rotate(-10deg) scale(1.05)' },
+					'100%': { transform: 'rotate(0deg) scale(1)' }
+				},
+				'shimmer-spice': {
+					'0%': { backgroundPosition: '-500px 0' },
+					'100%': { backgroundPosition: '500px 0' }
 				}
 			},
 			animation: {
@@ -148,7 +171,10 @@ export default {
 				'fade-in': 'fade-in 0.5s ease-out',
 				'slide-in': 'slide-in 0.3s ease-out',
 				'pulse-soft': 'pulse-soft 2s ease-in-out infinite',
-				'rotate-center': 'rotate-center 8s linear infinite'
+				'rotate-center': 'rotate-center 8s linear infinite',
+				'spice-float': 'spice-float 3s ease-in-out infinite',
+				'masala-mix': 'masala-mix 5s ease-in-out infinite',
+				'shimmer-spice': 'shimmer-spice 2.5s infinite linear'
 			}
 		}
 	},

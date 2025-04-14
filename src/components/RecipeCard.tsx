@@ -130,9 +130,11 @@ const RecipeCard: React.FC<RecipeCardProps> = ({
             </HoverCard>
             
             <div className="ml-auto">
-              <span className="text-xs px-2 py-1 rounded-full bg-recipe-primary/10 text-recipe-primary font-medium transition-colors duration-300 group-hover:bg-recipe-primary/20">
-                View Recipe
-              </span>
+              <Link to={`/recipes/${recipe.id}`} className="block">
+                <span className="text-xs px-2 py-1 rounded-full bg-recipe-primary/10 text-recipe-primary font-medium transition-colors duration-300 hover:bg-recipe-primary/20">
+                  View Recipe
+                </span>
+              </Link>
             </div>
           </div>
         </div>

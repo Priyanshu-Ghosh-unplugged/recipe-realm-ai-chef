@@ -12,6 +12,7 @@ import {
   ArrowLeft, Clock, Utensils, Heart, Edit, ChefHat, MessageSquare, 
   PanelRight, List, ShoppingBag, Printer
 } from 'lucide-react';
+import Navbar from '@/components/Navbar';
 
 const RecipeDetail = () => {
   const { id } = useParams<{ id: string }>();
@@ -24,7 +25,9 @@ const RecipeDetail = () => {
   const [isOwner, setIsOwner] = useState(false);
 
   useEffect(() => {
-    fetchRecipeDetails();
+    if (id) {
+      fetchRecipeDetails();
+    }
   }, [id]);
 
   const fetchRecipeDetails = async () => {
@@ -33,14 +36,29 @@ const RecipeDetail = () => {
     try {
       setLoading(true);
       
-      // Fetch the recipe
+      // First check if the recipe exists in Supabase
       const { data: recipeData, error: recipeError } = await supabase
         .from('recipes')
         .select('*')
         .eq('id', id)
-        .single();
+        .maybeSingle();
 
-      if (recipeError) throw recipeError;
+      // If we couldn't find it in Supabase or got an error, try to find it in mock data
+      if (recipeError || !recipeData) {
+        // Import mock data
+        const { mockRecipes } = await import('@/lib/mockData');
+        const mockRecipe = mockRecipes.find(r => r.id === id);
+        
+        if (mockRecipe) {
+          setRecipe(mockRecipe);
+          setLoading(false);
+          return;
+        }
+        
+        // If we couldn't find the recipe in mock data either, show an error
+        if (recipeError) throw recipeError;
+        throw new Error("Recipe not found");
+      }
 
       // Check if user is owner
       if (user && recipeData.user_id === user.id) {
@@ -181,13 +199,16 @@ const RecipeDetail = () => {
 
   if (loading) {
     return (
-      <div className="container mx-auto py-10 px-4 flex justify-center">
-        <div className="animate-pulse space-y-4 w-full max-w-4xl">
-          <div className="h-8 bg-gray-200 rounded w-3/4"></div>
-          <div className="h-56 bg-gray-200 rounded"></div>
-          <div className="space-y-2">
-            <div className="h-4 bg-gray-200 rounded w-5/6"></div>
-            <div className="h-4 bg-gray-200 rounded w-4/6"></div>
+      <div className="min-h-screen bg-recipe-background">
+        <Navbar />
+        <div className="container mx-auto py-10 px-4 flex justify-center">
+          <div className="animate-pulse space-y-4 w-full max-w-4xl">
+            <div className="h-8 bg-gray-200 rounded w-3/4"></div>
+            <div className="h-56 bg-gray-200 rounded"></div>
+            <div className="space-y-2">
+              <div className="h-4 bg-gray-200 rounded w-5/6"></div>
+              <div className="h-4 bg-gray-200 rounded w-4/6"></div>
+            </div>
           </div>
         </div>
       </div>
@@ -196,212 +217,230 @@ const RecipeDetail = () => {
 
   if (!recipe) {
     return (
-      <div className="container mx-auto py-10 px-4 text-center">
-        <h2 className="text-xl font-semibold mb-4">Recipe not found</h2>
-        <Button asChild>
-          <Link to="/recipes">Back to Recipes</Link>
-        </Button>
+      <div className="min-h-screen bg-recipe-background">
+        <Navbar />
+        <div className="container mx-auto py-10 px-4 text-center">
+          <div className="p-8 bg-white rounded-lg shadow-lg max-w-md mx-auto">
+            <h2 className="text-xl font-semibold mb-4">Recipe not found</h2>
+            <p className="text-muted-foreground mb-6">We couldn't find the recipe you're looking for. It may have been deleted or you might have followed an invalid link.</p>
+            <Button asChild>
+              <Link to="/recipes">Back to Recipes</Link>
+            </Button>
+          </div>
+        </div>
       </div>
     );
   }
 
   return (
-    <div className="container mx-auto py-6 px-4">
-      <div className="max-w-5xl mx-auto mb-6">
-        {/* Back button and actions */}
-        <div className="flex justify-between items-center mb-6">
-          <Button 
-            variant="outline" 
-            size="sm" 
-            onClick={() => navigate(-1)}
-            className="flex items-center gap-1"
-          >
-            <ArrowLeft className="h-4 w-4" /> Back
-          </Button>
-          
-          <div className="flex gap-2">
-            {user && (
-              <Button
-                variant="outline"
-                size="sm"
-                onClick={handleToggleFavorite}
-                className={recipe.isFavorite ? "text-rose-500" : ""}
-              >
-                <Heart className={`h-4 w-4 mr-1 ${recipe.isFavorite ? "fill-current" : ""}`} />
-                {recipe.isFavorite ? "Favorited" : "Favorite"}
-              </Button>
-            )}
-            
-            {isOwner && (
-              <Button
-                variant="outline"
-                size="sm"
-                asChild
-              >
-                <Link to={`/recipes/edit/${recipe.id}`}>
-                  <Edit className="h-4 w-4 mr-1" /> Edit
-                </Link>
-              </Button>
-            )}
-            
-            <Button
-              variant="outline"
-              size="sm"
-              onClick={handlePrint}
+    <div className="min-h-screen bg-recipe-background">
+      <Navbar />
+      
+      <div className="container mx-auto py-6 px-4">
+        <div className="max-w-5xl mx-auto mb-6">
+          {/* Back button and actions */}
+          <div className="flex justify-between items-center mb-6">
+            <Button 
+              variant="outline" 
+              size="sm" 
+              onClick={() => navigate(-1)}
+              className="flex items-center gap-1"
             >
-              <Printer className="h-4 w-4 mr-1" /> Print
+              <ArrowLeft className="h-4 w-4" /> Back
             </Button>
-          </div>
-        </div>
-        
-        {/* Recipe header */}
-        <div className="mb-8">
-          <h1 className="text-3xl font-bold mb-4">{recipe.title}</h1>
-          
-          <div className="flex flex-wrap gap-2 mb-4">
-            {recipe.tags.map(tag => (
-              <span 
-                key={tag.id} 
-                className="px-3 py-1 rounded-full text-xs font-medium"
-                style={{ 
-                  backgroundColor: tag.color || '#e2e8f0', 
-                  color: tag.color ? getContrastColor(tag.color) : '#000' 
-                }}
-              >
-                {tag.name}
-              </span>
-            ))}
-          </div>
-          
-          {/* Recipe meta info */}
-          <div className="flex flex-wrap gap-6 text-sm text-gray-600 mb-4">
-            <div className="flex items-center">
-              <Clock className="h-4 w-4 mr-1" />
-              <span>Prep: {recipe.prepTime} min</span>
-            </div>
-            <div className="flex items-center">
-              <ChefHat className="h-4 w-4 mr-1" />
-              <span>Cook: {recipe.cookTime} min</span>
-            </div>
-            <div className="flex items-center">
-              <Utensils className="h-4 w-4 mr-1" />
-              <span>Servings: {recipe.servings}</span>
-            </div>
-          </div>
-        </div>
-        
-        {/* Recipe image and description */}
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-8 mb-10">
-          <div className="order-2 md:order-1">
-            <p className="text-gray-700 leading-relaxed mb-6">
-              {recipe.description}
-            </p>
             
-            <div className="flex flex-wrap gap-2">
-              <Button 
-                className="flex items-center"
-                onClick={handleAddToGroceryList}
-              >
-                <ShoppingBag className="h-4 w-4 mr-2" />
-                Add to Grocery List
-              </Button>
+            <div className="flex gap-2">
+              {user && (
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={handleToggleFavorite}
+                  className={recipe.isFavorite ? "text-rose-500" : ""}
+                >
+                  <Heart className={`h-4 w-4 mr-1 ${recipe.isFavorite ? "fill-current" : ""}`} />
+                  {recipe.isFavorite ? "Favorited" : "Favorite"}
+                </Button>
+              )}
               
-              <Button 
-                variant="outline" 
-                className="flex items-center"
-                onClick={handleAddToMealPlan}
+              {isOwner && (
+                <Button
+                  variant="outline"
+                  size="sm"
+                  asChild
+                >
+                  <Link to={`/recipes/edit/${recipe.id}`}>
+                    <Edit className="h-4 w-4 mr-1" /> Edit
+                  </Link>
+                </Button>
+              )}
+              
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={handlePrint}
               >
-                <PanelRight className="h-4 w-4 mr-2" />
-                Add to Meal Plan
+                <Printer className="h-4 w-4 mr-1" /> Print
               </Button>
             </div>
           </div>
           
-          <div className="order-1 md:order-2">
-            <img 
-              src={recipe.imageUrl || '/placeholder.svg'} 
-              alt={recipe.title}
-              className="w-full h-64 md:h-80 object-cover rounded-lg shadow-md"
-              onError={(e) => {
-                // Fallback if image fails to load
-                const target = e.target as HTMLImageElement;
-                target.src = '/placeholder.svg';
-              }}
-            />
-          </div>
-        </div>
-        
-        {/* Recipe content tabs */}
-        <Tabs defaultValue="ingredients" className="w-full">
-          <TabsList className="grid w-full grid-cols-2 md:w-auto md:inline-flex">
-            <TabsTrigger value="ingredients" className="flex items-center gap-2">
-              <List className="h-4 w-4" />
-              <span>Ingredients</span>
-            </TabsTrigger>
-            <TabsTrigger value="instructions" className="flex items-center gap-2">
-              <MessageSquare className="h-4 w-4" />
-              <span>Instructions</span>
-            </TabsTrigger>
-          </TabsList>
-          
-          <TabsContent value="ingredients" className="mt-6">
-            <Card>
-              <CardContent className="pt-6">
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
-                  <div>
-                    <h3 className="text-lg font-medium mb-4">Ingredients for {recipe.servings} servings</h3>
-                    <ul className="space-y-3">
-                      {recipe.ingredients.map((ingredient, index) => (
-                        <li key={ingredient.id || index} className="flex items-start">
-                          <span className="h-2 w-2 rounded-full bg-primary mt-2 mr-2"></span>
-                          <span>
-                            <strong>{ingredient.amount} {ingredient.unit}</strong> {ingredient.name}
-                          </span>
-                        </li>
-                      ))}
-                    </ul>
-                  </div>
-                  
-                  <div className="bg-gray-50 p-4 rounded-lg">
-                    <h3 className="text-lg font-medium mb-4">Adjust Servings</h3>
-                    <p className="text-gray-600 mb-4">
-                      Need to make this recipe for more or fewer people? Adjust the servings to recalculate the ingredients.
-                    </p>
-                    <div className="flex items-center gap-4">
-                      <Button variant="outline" size="sm">-</Button>
-                      <span className="text-xl font-medium">{recipe.servings}</span>
-                      <Button variant="outline" size="sm">+</Button>
-                    </div>
-                  </div>
-                </div>
-              </CardContent>
-            </Card>
-          </TabsContent>
-          
-          <TabsContent value="instructions" className="mt-6">
-            <Card>
-              <CardContent className="pt-6">
-                <h3 className="text-lg font-medium mb-4">Step by Step Instructions</h3>
-                <div className="space-y-6">
-                  {recipe.instructions
-                    .sort((a, b) => a.step - b.step)
-                    .map((instruction) => (
-                    <div key={instruction.id} className="flex">
-                      <div className="mr-4 flex-shrink-0">
-                        <div className="h-8 w-8 rounded-full bg-primary flex items-center justify-center text-white font-medium">
-                          {instruction.step}
-                        </div>
-                      </div>
-                      <div>
-                        <p className="text-gray-700">{instruction.text}</p>
-                      </div>
-                    </div>
+          {/* Recipe header with enhanced styling */}
+          <div className="bg-white rounded-2xl shadow-lg overflow-hidden mb-8">
+            <div className="relative h-64 md:h-80 bg-gradient-to-r from-recipe-saffron to-recipe-chili overflow-hidden">
+              <img 
+                src={recipe.imageUrl || '/placeholder.svg'} 
+                alt={recipe.title}
+                className="w-full h-full object-cover opacity-90 mix-blend-overlay"
+              />
+              <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-transparent to-transparent"></div>
+              <div className="absolute bottom-0 left-0 right-0 p-8">
+                <h1 className="text-3xl md:text-4xl font-bold text-white mb-2">{recipe.title}</h1>
+                <div className="flex flex-wrap gap-2 mb-4">
+                  {recipe.tags.map(tag => (
+                    <span 
+                      key={tag.id} 
+                      className="px-3 py-1 rounded-full text-xs font-medium animate-fade-in"
+                      style={{ 
+                        backgroundColor: tag.color || '#e2e8f0', 
+                        color: getContrastColor(tag.color || '#e2e8f0') 
+                      }}
+                    >
+                      {tag.name}
+                    </span>
                   ))}
                 </div>
-              </CardContent>
-            </Card>
-          </TabsContent>
-        </Tabs>
+              </div>
+            </div>
+            
+            {/* Recipe meta info */}
+            <div className="p-8">
+              <div className="flex flex-wrap gap-6 text-sm text-gray-600 mb-6 border-b pb-6">
+                <div className="flex items-center">
+                  <div className="bg-recipe-primary/10 p-2 rounded-full mr-2">
+                    <Clock className="h-5 w-5 text-recipe-primary" />
+                  </div>
+                  <div>
+                    <p className="text-xs text-gray-500">Prep Time</p>
+                    <p className="font-semibold">{recipe.prepTime} min</p>
+                  </div>
+                </div>
+                <div className="flex items-center">
+                  <div className="bg-recipe-chili/10 p-2 rounded-full mr-2">
+                    <ChefHat className="h-5 w-5 text-recipe-chili" />
+                  </div>
+                  <div>
+                    <p className="text-xs text-gray-500">Cook Time</p>
+                    <p className="font-semibold">{recipe.cookTime} min</p>
+                  </div>
+                </div>
+                <div className="flex items-center">
+                  <div className="bg-recipe-turmeric/10 p-2 rounded-full mr-2">
+                    <Utensils className="h-5 w-5 text-recipe-curry" />
+                  </div>
+                  <div>
+                    <p className="text-xs text-gray-500">Servings</p>
+                    <p className="font-semibold">{recipe.servings}</p>
+                  </div>
+                </div>
+              </div>
+              
+              <p className="text-gray-700 leading-relaxed mb-6">
+                {recipe.description}
+              </p>
+              
+              <div className="flex flex-wrap gap-2">
+                <Button 
+                  className="flex items-center bg-gradient-to-r from-recipe-primary to-recipe-accent hover:brightness-110 transition-all"
+                  onClick={handleAddToGroceryList}
+                >
+                  <ShoppingBag className="h-4 w-4 mr-2" />
+                  Add to Grocery List
+                </Button>
+                
+                <Button 
+                  variant="outline" 
+                  className="flex items-center border-recipe-primary text-recipe-primary hover:bg-recipe-primary/5"
+                  onClick={handleAddToMealPlan}
+                >
+                  <PanelRight className="h-4 w-4 mr-2" />
+                  Add to Meal Plan
+                </Button>
+              </div>
+            </div>
+          </div>
+          
+          {/* Recipe content tabs with enhanced styling */}
+          <Tabs defaultValue="ingredients" className="w-full">
+            <TabsList className="grid w-full grid-cols-2 mb-6">
+              <TabsTrigger value="ingredients" className="flex items-center gap-2 py-3">
+                <List className="h-4 w-4" />
+                <span>Ingredients</span>
+              </TabsTrigger>
+              <TabsTrigger value="instructions" className="flex items-center gap-2 py-3">
+                <MessageSquare className="h-4 w-4" />
+                <span>Instructions</span>
+              </TabsTrigger>
+            </TabsList>
+            
+            <TabsContent value="ingredients" className="mt-2 animate-fade-in">
+              <Card className="border-0 shadow-md overflow-hidden">
+                <CardContent className="p-6 md:p-8">
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+                    <div>
+                      <h3 className="text-lg font-medium mb-4">Ingredients for {recipe.servings} servings</h3>
+                      <ul className="space-y-3">
+                        {recipe.ingredients.map((ingredient, index) => (
+                          <li key={ingredient.id || index} className="flex items-start group transition-all hover:bg-recipe-background rounded p-1 -ml-1">
+                            <span className="h-2 w-2 rounded-full bg-recipe-primary mt-2 mr-2 group-hover:bg-recipe-saffron transition-colors"></span>
+                            <span>
+                              <strong>{ingredient.amount} {ingredient.unit}</strong> {ingredient.name}
+                            </span>
+                          </li>
+                        ))}
+                      </ul>
+                    </div>
+                    
+                    <div className="bg-recipe-background p-6 rounded-lg">
+                      <h3 className="text-lg font-medium mb-4">Adjust Servings</h3>
+                      <p className="text-gray-600 mb-6">
+                        Need to make this recipe for more or fewer people? Adjust the servings to recalculate the ingredients.
+                      </p>
+                      <div className="flex items-center gap-4">
+                        <Button variant="outline" size="sm" className="h-10 w-10 rounded-full p-0">-</Button>
+                        <span className="text-xl font-medium">{recipe.servings}</span>
+                        <Button variant="outline" size="sm" className="h-10 w-10 rounded-full p-0">+</Button>
+                      </div>
+                    </div>
+                  </div>
+                </CardContent>
+              </Card>
+            </TabsContent>
+            
+            <TabsContent value="instructions" className="mt-2 animate-fade-in">
+              <Card className="border-0 shadow-md">
+                <CardContent className="p-6 md:p-8">
+                  <h3 className="text-lg font-medium mb-6">Step by Step Instructions</h3>
+                  <div className="space-y-8">
+                    {recipe.instructions
+                      .sort((a, b) => a.step - b.step)
+                      .map((instruction) => (
+                      <div key={instruction.id} className="flex group">
+                        <div className="mr-6 flex-shrink-0">
+                          <div className="h-10 w-10 rounded-full bg-gradient-to-r from-recipe-primary to-recipe-accent flex items-center justify-center text-white font-medium group-hover:scale-110 transition-transform">
+                            {instruction.step}
+                          </div>
+                        </div>
+                        <div className="pt-1">
+                          <p className="text-gray-700">{instruction.text}</p>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                </CardContent>
+              </Card>
+            </TabsContent>
+          </Tabs>
+        </div>
       </div>
     </div>
   );
