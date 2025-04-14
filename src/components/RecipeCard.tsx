@@ -1,6 +1,6 @@
 
 import React from 'react';
-import { Link } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
 import { Recipe } from '@/lib/types';
 import { Clock, Utensils, Heart, ChefHat, User } from 'lucide-react';
 import { Button } from '@/components/ui/button';
@@ -20,6 +20,13 @@ const RecipeCard: React.FC<RecipeCardProps> = ({
   className
 }) => {
   const totalTime = recipe.prepTime + recipe.cookTime;
+  const navigate = useNavigate();
+  
+  const handleViewRecipeClick = (e: React.MouseEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+    navigate(`/recipes/${recipe.id}`);
+  };
   
   return (
     <div className={cn("recipe-card relative group", className)}>
@@ -130,11 +137,14 @@ const RecipeCard: React.FC<RecipeCardProps> = ({
             </HoverCard>
             
             <div className="ml-auto">
-              <Link to={`/recipes/${recipe.id}`} className="block">
-                <span className="text-xs px-2 py-1 rounded-full bg-recipe-primary/10 text-recipe-primary font-medium transition-colors duration-300 hover:bg-recipe-primary/20">
-                  View Recipe
-                </span>
-              </Link>
+              <Button 
+                onClick={handleViewRecipeClick} 
+                className="text-xs px-2 py-1 rounded-full bg-recipe-primary/10 text-recipe-primary font-medium transition-colors duration-300 hover:bg-recipe-primary/20"
+                variant="ghost"
+                size="sm"
+              >
+                View Recipe
+              </Button>
             </div>
           </div>
         </div>

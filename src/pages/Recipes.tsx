@@ -7,7 +7,7 @@ import { supabase } from '@/integrations/supabase/client';
 import Navbar from '@/components/Navbar';
 import RecipeCard from '@/components/RecipeCard';
 import RecipeForm from '@/components/RecipeForm';
-import { Dialog, DialogContent, DialogTrigger } from '@/components/ui/dialog';
+import { Dialog, DialogContent, DialogTrigger, DialogTitle, DialogDescription } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Plus, Filter, Search, Loader2 } from 'lucide-react';
@@ -193,6 +193,10 @@ const Recipes = () => {
               </Button>
             </DialogTrigger>
             <DialogContent className="sm:max-w-[800px]">
+              <DialogTitle>Add New Recipe</DialogTitle>
+              <DialogDescription>
+                Create a delicious new recipe to share with the community
+              </DialogDescription>
               <ScrollArea className="max-h-[80vh]">
                 <RecipeForm 
                   onSave={handleSaveRecipe}

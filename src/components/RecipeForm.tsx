@@ -1,5 +1,4 @@
-
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Recipe, Ingredient, RecipeInstruction, Tag } from '@/lib/types';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -25,6 +24,7 @@ const RecipeForm: React.FC<RecipeFormProps> = ({
   const { toast } = useToast();
   const { user } = useAuth();
   const [isSaving, setIsSaving] = useState(false);
+  const [databaseTags, setDatabaseTags] = useState<Tag[]>([]);
   
   const [recipe, setRecipe] = useState<Partial<Recipe>>(initialRecipe || {
     title: '',
@@ -45,6 +45,26 @@ const RecipeForm: React.FC<RecipeFormProps> = ({
   });
 
   const [newInstruction, setNewInstruction] = useState('');
+
+  useEffect(() => {
+    const fetchTags = async () => {
+      try {
+        const { data, error } = await supabase.from('tags').select('*');
+        if (error) throw error;
+        
+        if (data && data.length > 0) {
+          setDatabaseTags(data as Tag[]);
+        } else {
+          setDatabaseTags(mockTags);
+        }
+      } catch (error) {
+        console.error('Error fetching tags:', error);
+        setDatabaseTags(mockTags);
+      }
+    };
+    
+    fetchTags();
+  }, []);
 
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
     const { name, value } = e.target;
@@ -138,6 +158,48 @@ const RecipeForm: React.FC<RecipeFormProps> = ({
       ...prev,
       tags: prev.tags?.filter(tag => tag.id !== tagId) || []
     }));
+  };
+
+  const isUUID = (str: string) => {
+    const uuidRegex = /^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}$/;
+    return uuidRegex.test(str);
+  };
+  
+  const ensureTagUUID = async (tagId: string, tagName: string, tagColor: string | undefined): Promise<string> => {
+    if (isUUID(tagId)) {
+      return tagId;
+    }
+    
+    const { data: existingTag, error: findTagError } = await supabase
+      .from('tags')
+      .select('id')
+      .eq('name', tagName)
+      .maybeSingle();
+    
+    if (findTagError) {
+      console.error('Error finding tag:', findTagError);
+    }
+    
+    if (existingTag) {
+      return existingTag.id;
+    }
+    
+    const { data: newTag, error: createTagError } = await supabase
+      .from('tags')
+      .insert({ 
+        name: tagName, 
+        color: tagColor || '#FF6B35',
+        user_id: user?.id
+      })
+      .select('id')
+      .single();
+      
+    if (createTagError) {
+      console.error('Error creating tag:', createTagError);
+      throw createTagError;
+    }
+    
+    return newTag.id;
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -256,18 +318,24 @@ const RecipeForm: React.FC<RecipeFormProps> = ({
       
       if (recipe.tags && recipe.tags.length > 0) {
         console.log("Processing tags:", recipe.tags);
-        const recipeTags = recipe.tags.map(tag => ({
-          recipe_id: recipeId,
-          tag_id: tag.id
-        }));
         
-        const { error: tagsError } = await supabase
-          .from('recipe_tags')
-          .insert(recipeTags);
-          
-        if (tagsError) {
-          console.error("Error linking tags to recipe:", tagsError);
-          throw tagsError;
+        for (const tag of recipe.tags) {
+          try {
+            const validTagId = await ensureTagUUID(tag.id, tag.name, tag.color);
+            
+            const { error: tagLinkError } = await supabase
+              .from('recipe_tags')
+              .insert({
+                recipe_id: recipeId,
+                tag_id: validTagId
+              });
+              
+            if (tagLinkError) {
+              console.error("Error linking tag to recipe:", tagLinkError);
+            }
+          } catch (error) {
+            console.error("Error processing tag:", tag, error);
+          }
         }
       }
       
@@ -382,7 +450,7 @@ const RecipeForm: React.FC<RecipeFormProps> = ({
         <div>
           <label className="block text-sm font-medium mb-1">Tags</label>
           <TagInput
-            availableTags={mockTags}
+            availableTags={databaseTags.length > 0 ? databaseTags : mockTags}
             selectedTags={recipe.tags || []}
             onTagSelect={handleTagSelect}
             onTagRemove={handleTagRemove}
