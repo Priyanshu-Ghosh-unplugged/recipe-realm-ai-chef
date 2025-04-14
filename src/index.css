@@ -57,14 +57,108 @@
 
 @layer components {
   .recipe-card {
-    @apply bg-white rounded-xl overflow-hidden transition-all duration-300 shadow-sm hover:shadow-md;
+    @apply bg-white rounded-xl overflow-hidden transition-all duration-300 shadow hover:shadow-lg hover:-translate-y-1;
   }
   
   .tag-pill {
-    @apply px-3 py-1 rounded-full text-xs font-medium bg-muted text-muted-foreground inline-block mr-2 mb-2;
+    @apply px-3 py-1 rounded-full text-xs font-medium bg-muted text-muted-foreground inline-block mr-2 mb-2 transition-colors duration-200;
   }
   
   .hover-scale {
-    @apply transition-transform duration-200 hover:scale-102;
+    @apply transition-transform duration-200 hover:scale-105;
+  }
+
+  .hover-glow {
+    @apply transition-all duration-300 hover:shadow-[0_0_15px_rgba(255,107,53,0.5)];
+  }
+  
+  .btn-primary {
+    @apply bg-recipe-primary text-white hover:bg-recipe-primary/90 transition-all duration-300 hover:shadow-md;
+  }
+  
+  .btn-secondary {
+    @apply bg-recipe-secondary text-white hover:bg-recipe-secondary/90 transition-all duration-300 hover:shadow-md;
+  }
+  
+  .btn-outline {
+    @apply border-2 border-recipe-primary text-recipe-primary bg-transparent hover:bg-recipe-primary/10 transition-all duration-300;
+  }
+  
+  .input-animated {
+    @apply transition-all duration-200 border-b-2 border-muted focus:border-recipe-primary focus:outline-none;
+  }
+  
+  .glass-card {
+    @apply bg-white/80 backdrop-blur-sm border border-white/20 shadow-sm;
+  }
+}
+
+.text-gradient {
+  @apply bg-gradient-to-r from-recipe-primary to-recipe-accent text-transparent bg-clip-text;
+}
+
+.bg-speckled {
+  background-image: radial-gradient(circle, #e7e4dd 1px, transparent 1px);
+  background-size: 20px 20px;
+}
+
+.recipe-header-bg {
+  background: linear-gradient(135deg, rgba(255,250,245,0.95) 0%, rgba(255,240,230,0.95) 100%);
+  position: relative;
+}
+
+.recipe-header-bg::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background-image: url("data:image/svg+xml,%3Csvg width='60' height='60' viewBox='0 0 60 60' xmlns='http://www.w3.org/2000/svg'%3E%3Cg fill='none' fill-rule='evenodd'%3E%3Cg fill='%23FF6B35' fill-opacity='0.05'%3E%3Cpath d='M36 34v-4h-2v4h-4v2h4v4h2v-4h4v-2h-4zm0-30V0h-2v4h-4v2h4v4h2V6h4V4h-4zM6 34v-4H4v4H0v2h4v4h2v-4h4v-2H6zM6 4V0H4v4H0v2h4v4h2V6h4V4H6z'/%3E%3C/g%3E%3C/g%3E%3C/svg%3E");
+  opacity: 0.5;
+  z-index: -1;
+}
+
+.hero-gradient {
+  background: linear-gradient(135deg, #FF9D6C 0%, #FF6B35 100%);
+}
+
+/* Animation for recipe card hover */
+.recipe-card::after {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background: linear-gradient(225deg, rgba(255,255,255,0) 0%, rgba(255,169,77,0.1) 100%);
+  opacity: 0;
+  transition: opacity 0.3s ease;
+}
+
+.recipe-card:hover::after {
+  opacity: 1;
+}
+
+/* Shimmer effect for loading states */
+.shimmer {
+  position: relative;
+  overflow: hidden;
+}
+
+.shimmer::after {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: -100%;
+  width: 100%;
+  height: 100%;
+  background: linear-gradient(90deg, transparent, rgba(255,255,255,0.3), transparent);
+  animation: shimmer 1.5s infinite;
+}
+
+@keyframes shimmer {
+  100% {
+    left: 100%;
   }
 }

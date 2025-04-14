@@ -21,6 +21,13 @@ export default {
 		extend: {
 			scale: {
 				'102': '1.02',
+				'105': '1.05',
+				'110': '1.1',
+			},
+			backgroundImage: {
+				'hero-pattern': "url('/hero-pattern.png')",
+				'recipe-gradient': 'linear-gradient(135deg, #FF9D6C 0%, #FF6B35 100%)',
+				'card-gradient': 'linear-gradient(180deg, rgba(255,255,255,0) 0%, rgba(255,255,255,1) 100%)',
 			},
 			colors: {
 				border: 'hsl(var(--border))',
@@ -56,13 +63,18 @@ export default {
 					DEFAULT: 'hsl(var(--card))',
 					foreground: 'hsl(var(--card-foreground))'
 				},
-				// Custom colors for Recipe Realm
+				// Enhanced color palette for Recipe Realm
 				recipe: {
 					primary: '#FF6B35',    // Warm Orange
 					secondary: '#4CB944',  // Fresh Green
 					accent: '#FFA94D',     // Light Orange
 					background: '#FFFAF5', // Cream
 					text: '#2D2926',       // Deep Brown
+					pink: '#FF8BA7',       // Soft Pink
+					purple: '#9B87F5',     // Lavender
+					teal: '#3ABBB3',       // Teal
+					yellow: '#FFD166',     // Warm Yellow
+					red: '#F25F5C',        // Coral Red
 				},
 				sidebar: {
 					DEFAULT: 'hsl(var(--sidebar-background))',
@@ -106,12 +118,37 @@ export default {
 						opacity: '1',
 						transform: 'translateY(0)'
 					}
+				},
+				'slide-in': {
+					'0%': {
+						opacity: '0',
+						transform: 'translateX(-10px)'
+					},
+					'100%': {
+						opacity: '1',
+						transform: 'translateX(0)'
+					}
+				},
+				'pulse-soft': {
+					'0%, 100%': { opacity: '1' },
+					'50%': { opacity: '0.8' }
+				},
+				'rotate-center': {
+					'0%': {
+						transform: 'rotate(0)'
+					},
+					'100%': {
+						transform: 'rotate(360deg)'
+					}
 				}
 			},
 			animation: {
 				'accordion-down': 'accordion-down 0.2s ease-out',
 				'accordion-up': 'accordion-up 0.2s ease-out',
-				'fade-in': 'fade-in 0.5s ease-out'
+				'fade-in': 'fade-in 0.5s ease-out',
+				'slide-in': 'slide-in 0.3s ease-out',
+				'pulse-soft': 'pulse-soft 2s ease-in-out infinite',
+				'rotate-center': 'rotate-center 8s linear infinite'
 			}
 		}
 	},
